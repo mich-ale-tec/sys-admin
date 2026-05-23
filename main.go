@@ -2,51 +2,95 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"time"
+
+	"charm.land/huh/v2"
+	"charm.land/huh/v2/spinner"
+	"charm.land/lipgloss/v2"
+)
+
+var (
+	nroRepository int
 )
 
 func main() {
-	path_parts := []string{`C:\`, "Users", "72720804", "source", "repos"}
-	path := filepath.Join(path_parts...)
-	entries, err := os.ReadDir(path)
+	//pathParts := []string{`C:\`, "Users", "72720804", "source", "repos"}
+	pathParts := []string{`C:\`, "Users", "Usuario", "source", "repos"}
+	entries := readRepositories(pathParts)
+
+	showTitle()
+	showRepositories(entries)
+
+	pathRepositoryParts := append(pathParts, entries[nroRepository].Name())
+	pathRepository := filepath.Join(pathRepositoryParts...)
+	execCommand(pathRepository)
+}
+
+func readRepositories(pathParts []string) []os.DirEntry {
+	var entries []os.DirEntry
+	err := spinner.New().
+		Title("Leyendo repositorios...").
+		Action(func() {
+			time.Sleep(1 * time.Second)
+			path := filepath.Join(pathParts...)
+			var err error
+			entries, err = os.ReadDir(path)
+			if err != nil {
+				panic(err)
+			}
+		}).
+		Run()
 
 	if err != nil {
 		panic(err)
 	}
+	return entries
+}
 
-	fmt.Println("Repositorios:")
+func showTitle() {
+	title := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("205")).
+		Border(lipgloss.RoundedBorder()).
+		Padding(0, 3)
+	fmt.Println(title.Render("🐱 LG - Repositorios"))
 	fmt.Println("")
-	for index, entry := range entries {
-		fmt.Printf("[%d] %s\n", index, entry.Name())
+}
+
+func showRepositories(entries []os.DirEntry) {
+	options := make([]huh.Option[int], 0, len(entries))
+	for i, entry := range entries {
+		if entry.IsDir() {
+			options = append(
+				options,
+				huh.NewOption(entry.Name(), i),
+			)
+		}
 	}
-	fmt.Println("")
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewSelect[int]().
+				Title("Escoge tu repositorio").
+				Options(options...).
+				Value(&nroRepository),
+		))
 
-	var nro_repositorio int
-	fmt.Print("Repositorio: ")
-	fmt.Scanln(&nro_repositorio)
-
-	repositorio := entries[nro_repositorio].Name()
-	fmt.Printf("Elegiste: [%s] ¿Desea continuar? (S/n): ", repositorio)
-
-	var res_continuar string
-	fmt.Scanln(&res_continuar)
-
-	if strings.ToLower(strings.TrimSpace(res_continuar)) == "n" {
-		os.Exit(0)
+	err := form.Run()
+	if err != nil {
+		log.Fatal(err)
 	}
+}
 
-	path_repository_parts := append(path_parts, entries[nro_repositorio].Name())
-	path_repository := filepath.Join(path_repository_parts...)
-
+func execCommand(path string) {
 	cmd := exec.Command("lazygit")
-	cmd.Dir = path_repository
+	cmd.Dir = path
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	if err := cmd.Run(); err != nil {
 		panic(err)
 	}

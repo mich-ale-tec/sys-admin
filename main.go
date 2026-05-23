@@ -11,6 +11,7 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/huh/v2/spinner"
 	"charm.land/lipgloss/v2"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -18,8 +19,10 @@ var (
 )
 
 func main() {
-	//pathParts := []string{`C:\`, "Users", "72720804", "source", "repos"}
-	pathParts := []string{`C:\`, "Users", "Usuario", "source", "repos"}
+	godotenv.Load()
+
+	user := os.Getenv("USER")
+	pathParts := []string{`C:\`, "Users", user, "source", "repos"}
 	entries := readRepositories(pathParts)
 
 	showTitle()

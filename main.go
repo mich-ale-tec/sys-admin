@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"charm.land/huh/v2"
@@ -21,8 +22,18 @@ var (
 func main() {
 	godotenv.Load()
 
-	user := os.Getenv("USER")
-	pathParts := []string{`C:\`, "Users", user, "source", "repos"}
+	var pathParts []string
+
+	switch runtime.GOOS {
+	case "windows":
+		user := os.Getenv("USER")
+		pathParts = []string{`C:\`, "Users", user, "source", "repos"}
+	case "linux":
+		pathParts = []string{"/", "home", "mich", "Repositorios"}
+	default:
+		fmt.Println("Sistema operativos desconocido")
+	}
+
 	entries := readRepositories(pathParts)
 
 	showTitle()
@@ -60,7 +71,7 @@ func showTitle() {
 		Foreground(lipgloss.Color("205")).
 		Border(lipgloss.RoundedBorder()).
 		Padding(0, 3)
-	fmt.Println(title.Render("🐱 LG - Repositorios"))
+	fmt.Println(title.Render("🐱 Michimon - Repositorios"))
 	fmt.Println("")
 }
 

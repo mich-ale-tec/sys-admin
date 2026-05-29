@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func CommandFilter(files []os.DirEntry, pathDir string) {
+func CommandFilter(files []os.DirEntry, pathDir string) error {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Print("Match :")
@@ -21,34 +21,44 @@ func CommandFilter(files []os.DirEntry, pathDir string) {
 	fmt.Print("Borrar? (Y/n): ")
 	scanner.Scan()
 	resRemoveFiles := scanner.Text()
-	ValidConfirmRemove(resRemoveFiles)
-
-	RemoveFiles(filesFilter, pathDir)
-}
-
-func ValidConfirmRemove(response string) {
-	if response == "n" {
-		os.Exit(0)
+	err := ValidConfirmRemove(resRemoveFiles)
+	if err != nil {
+		return err
 	}
+	err = RemoveFiles(filesFilter, pathDir)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func RemoveFiles(files []os.DirEntry, pathDir string) {
+func ValidConfirmRemove(response string) error {
+	if response == "n" {
+		return fmt.Errorf("Cancelando el comando...")
+	}
+	return nil
+}
+
+func RemoveFiles(files []os.DirEntry, pathDir string) error {
 	for _, file := range files {
 		path := filepath.Join(pathDir, file.Name())
 		err := os.Remove(path)
 		if err != nil {
-			fmt.Printf("Error borrando %s\n", file.Name())
+			return fmt.Errorf("Error borrando %s\n", file.Name())
 		}
 	}
 	fmt.Printf("Borrado (%d) archivo(s)", len(files))
+	return nil
 }
 
 func FilterFilesByMatch(files []os.DirEntry, match string) []os.DirEntry {
 	var filesFilter []os.DirEntry
-	for i, entry := range files {
+	count := 1
+	for _, entry := range files {
 		if strings.Contains(entry.Name(), match) {
 			filesFilter = append(filesFilter, entry)
-			fmt.Printf("%d: %s\n", i+1, entry.Name())
+			fmt.Printf("%d: %s\n", count, entry.Name())
+			count += 1
 		}
 	}
 	return filesFilter

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
@@ -11,12 +12,20 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("Buscando la carpeta del usuario...")
-	user := GetNameDirUser()
+	user, err := GetNameDirUser()
+	if err != nil {
+		fmt.Println("No se pudo encontrar el usuario: ", err)
+		return
+	}
 
 	fmt.Println("Buscando fonts...")
 	pathDir := BuildPathDir(user)
 
-	dirEntries := GetItemsDir(pathDir)
+	dirEntries, err := GetItemsDir(pathDir)
+	if err != nil {
+		fmt.Println("No se pudo leer el directorio: ", err)
+		return
+	}
 
 	files := FilterFiles(dirEntries)
 
@@ -24,17 +33,23 @@ func main() {
 	scanner.Scan()
 	command := scanner.Text()
 
-	ExecCommand(command, files, pathDir)
-
+	err = ExecCommand(command, files, pathDir)
+	if err != nil {
+		fmt.Println("No se pudo ejecutar el comando: ", err)
+	}
 }
 
-func ExecCommand(command string, files []os.DirEntry, pathDir string) {
+func ExecCommand(command string, files []os.DirEntry, pathDir string) error {
 	switch command {
 	case "f":
-		CommandFilter(files, pathDir)
+		err := CommandFilter(files, pathDir)
+		if err != nil {
+			return err
+		}
 	default:
 		fmt.Println("Opción inválida")
 	}
+	return nil
 }
 
 func FilterFiles(itemsDir []os.DirEntry) []os.DirEntry {
@@ -49,13 +64,12 @@ func FilterFiles(itemsDir []os.DirEntry) []os.DirEntry {
 	return files
 }
 
-func GetItemsDir(pathDir string) []os.DirEntry {
+func GetItemsDir(pathDir string) ([]os.DirEntry, error) {
 	dirEntries, err := os.ReadDir(pathDir)
 	if err != nil {
-		fmt.Println("No se pudo leer el directorio")
-		panic(err)
+		return nil, err
 	}
-	return dirEntries
+	return dirEntries, nil
 }
 
 func BuildPathDir(user string) string {
@@ -63,10 +77,10 @@ func BuildPathDir(user string) string {
 	return filepath.Join(pathsArray...)
 }
 
-func GetNameDirUser() string {
-	user := os.Getenv("USER")
-	if user == "" {
-		user = "72720804"
+func GetNameDirUser() (string, error) {
+	user, err := user.Current()
+	if err != nil {
+		return "", err
 	}
-	return user
+	return user.Username, nil
 }

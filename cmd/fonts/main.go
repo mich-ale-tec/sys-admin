@@ -12,14 +12,14 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("Buscando la carpeta del usuario...")
-	user, err := GetNameDirUser()
+	userDir, err := GetNameDirUser()
 	if err != nil {
 		fmt.Println("No se pudo encontrar el usuario: ", err)
 		return
 	}
 
 	fmt.Println("Buscando fonts...")
-	pathDir := BuildPathDir(user)
+	pathDir := BuildPathDir(userDir)
 
 	dirEntries, err := GetItemsDir(pathDir)
 	if err != nil {
@@ -72,15 +72,15 @@ func GetItemsDir(pathDir string) ([]os.DirEntry, error) {
 	return dirEntries, nil
 }
 
-func BuildPathDir(user string) string {
-	pathsArray := []string{`C:\`, "Users", user, "AppData", "Local", "Microsoft", "Windows", "Fonts"}
+func BuildPathDir(userDir string) string {
+	pathsArray := []string{userDir, "AppData", "Local", "Microsoft", "Windows", "Fonts"}
 	return filepath.Join(pathsArray...)
 }
 
 func GetNameDirUser() (string, error) {
-	user, err := user.Current()
+	u, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	return user.Username, nil
+	return u.HomeDir, nil
 }

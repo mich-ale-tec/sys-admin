@@ -9,34 +9,60 @@ import (
 )
 
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-
-	fmt.Println("Buscando la carpeta del usuario...")
-	user, err := GetNameDirUser()
+	pathDir, err := BootDirUser()
 	if err != nil {
-		fmt.Println("No se pudo encontrar el usuario: ", err)
+		fmt.Println(err)
 		return
 	}
 
-	fmt.Println("Buscando fonts...")
-	pathDir := BuildPathDir(user)
+	files, err := BootFiles(pathDir)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
+	err = BootCommand(files, pathDir)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+}
+
+func BootCommand(files []os.DirEntry, path string) error {
+	command := ReadCommand()
+	err := ExecCommand(command, files, path)
+	if err != nil {
+		return fmt.Errorf("No se pudo ejecutar el comando: %w", err)
+	}
+	return nil
+}
+
+func BootFiles(pathDir string) ([]os.DirEntry, error) {
 	dirEntries, err := GetItemsDir(pathDir)
 	if err != nil {
-		fmt.Println("No se pudo leer el directorio: ", err)
-		return
+		return nil, fmt.Errorf("No se pudo leer el directorio: %w", err)
 	}
 
 	files := FilterFiles(dirEntries)
+	return files, nil
+}
 
+func ReadCommand() string {
+	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("filter (f), remove (r) :")
 	scanner.Scan()
 	command := scanner.Text()
+	return command
+}
 
-	err = ExecCommand(command, files, pathDir)
+func BootDirUser() (string, error) {
+	fmt.Println("Buscando la carpeta del usuario...")
+	user, err := GetNameDirUser()
 	if err != nil {
-		fmt.Println("No se pudo ejecutar el comando: ", err)
+		return "", fmt.Errorf("No se pudo obtener el nombre del usuario: %w", err)
 	}
+	pathDir := BuildPathDir(user)
+	return pathDir, nil
 }
 
 func ExecCommand(command string, files []os.DirEntry, pathDir string) error {
